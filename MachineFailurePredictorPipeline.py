@@ -2,6 +2,7 @@ import csv
 import random
 import numpy as np
 import sklearn
+from sklearn import svm
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
@@ -41,10 +42,11 @@ def main():
         print(len(split[1]))
         print(split[1])  # 30% testing data
         ##neuralNetwork(split[0], split[1])
-        naiveBayes(split[0], split[1])
+        ##naiveBayes(split[0], split[1])
         ##randomForest(split[0], split[1])
+        supportVectorMachine(split[0], split[1])
 def neuralNetwork(training_data, testing_data):
-    for row in training_data:
+    for row in training_data:  # Convert letters into numerical data
         row[1] = row[1][1:]
         if row[2] == "L":
             row[2] = 0.5
@@ -60,7 +62,7 @@ def neuralNetwork(training_data, testing_data):
     clf.fit(training_data, y)
 
     intList = []
-    for row in testing_data:
+    for row in testing_data:  # Convert all values in testing data into numerical, floating point numbers
         newRow = []
         for att in row:
             newRow.append(float(att))
@@ -75,6 +77,50 @@ def neuralNetwork(training_data, testing_data):
 
     scores = cross_val_score(clf, intList, y_true, cv=5)
     print(scores)
+
+def supportVectorMachine(trainingData, testingData):
+    training_true_y = []
+    for row in trainingData:  # Creating a table of true labels for the training data
+        training_true_y.append(row[8])
+
+    trainingFloatList = []  # Turn training data into all numerical floating point values
+    for row in trainingData:
+        newRow = []
+        for att in row:
+            newRow.append(float(att))
+        trainingFloatList.append(newRow)
+
+    y_testing_true = []
+    for row in testingData:  # Creates a list of all the true labels for the testing data
+        y_testing_true.append(float(row[8]))
+    print(y_testing_true)
+
+    clf = svm.SVC()
+    clf.fit(trainingFloatList, training_true_y)
+    pred = clf.predict(testingData)  # Make a prediction using the Support Vector Machine
+
+    predFloat = []
+    for value in pred:  # Transform the data from the prediction into floating point values
+        predFloat.append(float(value))
+    print(predFloat)
+
+
+    i = 0
+    mislabeledPoints = 0
+    while i < len(y_testing_true):  # Count the number of mislabeled points in pred
+        if y_testing_true[i] != predFloat[i]:
+            mislabeledPoints += 1
+        i += 1
+    print("Total points: ", len(pred))
+    print("Number of mislabeled points: ", mislabeledPoints)
+    print("Mislabel percentage: ", (mislabeledPoints/len(pred)*100))
+    """# get support vectors
+    print(clf.support_vectors_)
+    
+    # get indices of support vectors
+    print(clf.support_)
+    # get number of support vectors for each class
+    print(clf.n_support_)"""
 
 
 
@@ -123,35 +169,41 @@ def randomForest(trainingInput, testingInput):
 
 
 def naiveBayes(trainingData, testingData):
-    intList = []
+    intList = []  # Turn training data into all numerical floating point values
     for row in trainingData:
         newRow = []
         for att in row:
             newRow.append(float(att))
         intList.append(newRow)
-    gnb = GaussianNB()
+
+    gnb = GaussianNB()  # Create Gaussian Naive Bayes object
+
     y_training_true = []
-    for row in intList:
+    for row in intList:  # Create list of true labels values for training data
         y_training_true.append(row[8])
-    gnb.fit(intList, y_training_true)
+
+    gnb.fit(intList, y_training_true)  # Fit the training data to the labels according to Gaussian Naive Bayes
+
     testingIntList = []
-    for row in testingData:
+    for row in testingData:  # Transform all values in testingData to floating point numbers
         newRow = []
         for att in row:
             newRow.append(float(att))
         testingIntList.append(newRow)
-    y_pred = gnb.predict(testingIntList)
+
+    y_pred = gnb.predict(testingIntList)  # Use GNB to make a prediction for the classifiers of testingData
 
     y_testing_true = []
-    pointsMislabeled = 0
-    for row in testingData:
+    for row in testingData:  # Creates a list of all the true labels for the testing data
         y_testing_true.append(float(row[8]))
 
+    pointsMislabeled = 0
     i = 0
-    while i < len(y_testing_true):
+    while i < len(y_testing_true):  # Counts how many data points that the prediction got wrong
         if y_testing_true[i] != y_pred[i]:
             pointsMislabeled += 1
         i += 1
+
     print("prediction:", y_pred)
     print("true values are: ", y_testing_true)
     print("Number of mislabeled points out of a total %d points : %d" % (len(testingData), pointsMislabeled))
