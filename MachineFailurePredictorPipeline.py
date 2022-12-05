@@ -5,10 +5,10 @@ import sklearn
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
-
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import f1_score
 from sklearn.model_selection import cross_val_score
+from sklearn.naive_bayes import GaussianNB
 
 def main():
     with open('ai4i2020.csv') as file:
@@ -40,8 +40,9 @@ def main():
         print(split[0])  # 70% training data
         print(len(split[1]))
         print(split[1])  # 30% testing data
-        neuralNetwork(split[0], split[1])
-
+        ##neuralNetwork(split[0], split[1])
+        naiveBayes(split[0], split[1])
+        ##randomForest(split[0], split[1])
 def neuralNetwork(training_data, testing_data):
     for row in training_data:
         row[1] = row[1][1:]
@@ -75,7 +76,7 @@ def neuralNetwork(training_data, testing_data):
     scores = cross_val_score(clf, intList, y_true, cv=5)
     print(scores)
 
-        randomForest(split[0], split[1])
+
 
 
 def randomForest(trainingInput, testingInput):
@@ -119,6 +120,42 @@ def randomForest(trainingInput, testingInput):
     print(y_pred)
 
     print(sklearn.metrics.f1_score(y_true, y_pred, average='weighted'))
+
+
+def naiveBayes(trainingData, testingData):
+    intList = []
+    for row in trainingData:
+        newRow = []
+        for att in row:
+            newRow.append(float(att))
+        intList.append(newRow)
+    gnb = GaussianNB()
+    y_training_true = []
+    for row in intList:
+        y_training_true.append(row[8])
+    gnb.fit(intList, y_training_true)
+    testingIntList = []
+    for row in testingData:
+        newRow = []
+        for att in row:
+            newRow.append(float(att))
+        testingIntList.append(newRow)
+    y_pred = gnb.predict(testingIntList)
+
+    y_testing_true = []
+    pointsMislabeled = 0
+    for row in testingData:
+        y_testing_true.append(float(row[8]))
+
+    i = 0
+    while i < len(y_testing_true):
+        if y_testing_true[i] != y_pred[i]:
+            pointsMislabeled += 1
+        i += 1
+    print("prediction:", y_pred)
+    print("true values are: ", y_testing_true)
+    print("Number of mislabeled points out of a total %d points : %d" % (len(testingData), pointsMislabeled))
+    print("Mislabeled point percentage: %", (pointsMislabeled/len(testingData)*100))
 
 
 if __name__ == "__main__":
