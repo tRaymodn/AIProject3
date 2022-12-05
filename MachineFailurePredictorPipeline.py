@@ -1,7 +1,11 @@
 import csv
 import random
 import numpy as np
+import sklearn
 from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.datasets import make_classification
+
 
 def main():
     with open('ai4i2020.csv') as file:
@@ -27,6 +31,52 @@ def main():
         print(split[0])
         print(len(split[1]))
         print(split[1])
+
+        randomForest(split[0], split[1])
+
+
+def randomForest(trainingInput, testingInput):
+
+    clf = RandomForestClassifier(max_depth=2, random_state=0)
+
+    for row in trainingInput:
+        row[1] = 0
+
+        if row[2] == 'L':
+            row[2] = 0.5
+        elif row[2] == 'M':
+            row[2] = 0.3
+        elif row[2] == 'H':
+            row[2] = 0.2
+
+    y = []
+    for row in trainingInput:
+        y.append(row[8])
+
+    clf.fit(trainingInput, y)
+
+    for row in testingInput:
+        row[1] = 0
+
+        if row[2] == 'L':
+            row[2] = 0.5
+        elif row[2] == 'M':
+            row[2] = 0.3
+        elif row[2] == 'H':
+            row[2] = 0.2
+
+
+    y_pred = clf.predict(trainingInput)
+
+    y_true = []
+    for row in trainingInput:
+        y_true.append(row[8])
+
+    print(y_true)
+    print(y_pred)
+
+    print(sklearn.metrics.f1_score(y_true, y_pred, average='weighted'))
+
 
 if __name__ == "__main__":
     main();
