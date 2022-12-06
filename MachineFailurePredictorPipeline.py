@@ -10,6 +10,7 @@ from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import f1_score
 from sklearn.model_selection import cross_val_score
 from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import AdaBoostClassifier
 
 def main():
     with open('ai4i2020.csv') as file:
@@ -44,7 +45,8 @@ def main():
         ##neuralNetwork(split[0], split[1])
         ##naiveBayes(split[0], split[1])
         ##randomForest(split[0], split[1])
-        supportVectorMachine(split[0], split[1])
+        ##supportVectorMachine(split[0], split[1])
+        adaBoost(split[0], split[1])
 def neuralNetwork(training_data, testing_data):
     for row in training_data:  # Convert letters into numerical data
         row[1] = row[1][1:]
@@ -167,7 +169,37 @@ def randomForest(trainingInput, testingInput):
 
     print(sklearn.metrics.f1_score(y_true, y_pred, average='weighted'))
 
+def adaBoost(trainingData, testingData):
+    y_training_true = []
+    for row in trainingData:  # Create list of true labels values for training data
+        y_training_true.append(row[8])
 
+    clf = AdaBoostClassifier(n_estimators=100, random_state=0)
+    clf.fit(trainingData, y_training_true)
+    pred = clf.predict(testingData)
+    print(pred)
+
+    predFloat = []
+    j = 0
+    while j < len(pred):  # Transforms the prediction list into a list of floating point numbers
+        predFloat.append(float(pred[j]))
+        j += 1
+
+    y_testing_true = []
+    for row in testingData:  # Creates a list of all the true labels for the testing data
+        y_testing_true.append(float(row[8]))
+    print(y_testing_true)
+
+    pointsMislabeled = 0
+    i = 0
+    while i < len(pred):  # Compares the predicted labels to the real labels and finds the number of mislabeled points
+        if predFloat[i] != y_testing_true[i]:
+            pointsMislabeled += 1
+        i += 1
+
+    print("There were ", len(pred), "data points")
+    print("Number of points mislabeled: ", pointsMislabeled)
+    print("Percentage of mislabeled points: ", (pointsMislabeled/len(pred))*100)
 def naiveBayes(trainingData, testingData):
     intList = []  # Turn training data into all numerical floating point values
     for row in trainingData:
