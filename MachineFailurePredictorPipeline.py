@@ -8,9 +8,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.datasets import make_classification
 from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import f1_score
-from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import AdaBoostClassifier
+from sklearn.model_selection import GridSearchCV
 
 def main():
     with open('ai4i2020.csv') as file:
@@ -42,11 +43,11 @@ def main():
         print(split[0])  # 70% training data
         print(len(split[1]))
         print(split[1])  # 30% testing data
-        ##neuralNetwork(split[0], split[1])
-        ##naiveBayes(split[0], split[1])
-        ##randomForest(split[0], split[1])
-        ##supportVectorMachine(split[0], split[1])
-        adaBoost(split[0], split[1])
+        #neuralNetwork(split[0], split[1])
+        #naiveBayes(split[0], split[1])
+        #randomForest(split[0], split[1])
+        supportVectorMachine(split[0], split[1])
+        #adaBoost(split[0], split[1])
 def neuralNetwork(training_data, testing_data):
     for row in training_data:  # Convert letters into numerical data
         row[1] = row[1][1:]
@@ -78,7 +79,8 @@ def neuralNetwork(training_data, testing_data):
     print(y_pred)
 
     scores = cross_val_score(clf, intList, y_true, cv=5)
-    print(scores)
+    print("5-fold cross validation scores: ", scores)
+    print("Average cross validation score: ", sum(scores)/len(scores))
 
 def supportVectorMachine(trainingData, testingData):
     training_true_y = []
@@ -89,7 +91,14 @@ def supportVectorMachine(trainingData, testingData):
     for row in trainingData:
         newRow = []
         for att in row:
-            newRow.append(float(att))
+            if att == "L":
+                newRow.append(0.5)
+            elif att == "M":
+                newRow.append(0.3)
+            elif att == "H":
+                newRow.append(0.2)
+            else:
+                newRow.append(float(att))
         trainingFloatList.append(newRow)
 
     y_testing_true = []
@@ -101,30 +110,27 @@ def supportVectorMachine(trainingData, testingData):
     clf.fit(trainingFloatList, training_true_y)
     pred = clf.predict(testingData)  # Make a prediction using the Support Vector Machine
 
+    degree = np.array([1, 2, 3])
+    tol = np.array([0.0001, 0.001, 0.01, 0.0005, 0.00005, 0.00001])
+    gamma = np.array([0.0001, 0.00001, 0.000011, 0.000009])
+    grid = GridSearchCV(estimator=clf, param_grid={'tol': tol, 'gamma': gamma, 'degree': degree})
+    grid.fit(trainingFloatList, training_true_y)
+    print(grid)
+    # summarize the results of the grid search
+    print("Best grid score: ", grid.best_score_)
+    print("Best estimator for coef0: ", grid.best_estimator_.coef0)
+    print("Best estimator for C: ", grid.best_estimator_.C)
+    print("Best estimator for degree: ", grid.best_estimator_.degree)
+    print("Best estimator for tolerance: ", grid.best_estimator_.tol)
+    print("Best estimator for gamma: ", grid.best_estimator_.gamma)
+
     predFloat = []
     for value in pred:  # Transform the data from the prediction into floating point values
         predFloat.append(float(value))
-    print(predFloat)
 
-
-    i = 0
-    mislabeledPoints = 0
-    while i < len(y_testing_true):  # Count the number of mislabeled points in pred
-        if y_testing_true[i] != predFloat[i]:
-            mislabeledPoints += 1
-        i += 1
-    print("Total points: ", len(pred))
-    print("Number of mislabeled points: ", mislabeledPoints)
-    print("Mislabel percentage: ", (mislabeledPoints/len(pred)*100))
-    """# get support vectors
-    print(clf.support_vectors_)
-    
-    # get indices of support vectors
-    print(clf.support_)
-    # get number of support vectors for each class
-    print(clf.n_support_)"""
-
-
+    scores = cross_val_score(clf, trainingData, training_true_y, cv=5)  # Compute 5 fold, cross validation with training
+    print("Scores: ", scores)
+    print("Average of F1 scores: ", sum(scores)/len(scores))
 
 
 def randomForest(trainingInput, testingInput):
@@ -167,16 +173,19 @@ def randomForest(trainingInput, testingInput):
     print(y_true)
     print(y_pred)
 
-    print(sklearn.metrics.f1_score(y_true, y_pred, average='weighted'))
+    #print(sklearn.metrics.f1_score(y_true, y_pred, average='weighted'))
+    scores = cross_val_score(clf, trainingInput, y_true, cv=5)  # Compute 5 fold, cross validation with training
+    print("F1 scores with 5-fold validation: ", scores)
 
 def adaBoost(trainingData, testingData):
     y_training_true = []
     for row in trainingData:  # Create list of true labels values for training data
         y_training_true.append(row[8])
+    print(y_training_true)
 
     clf = AdaBoostClassifier(n_estimators=100, random_state=0)
     clf.fit(trainingData, y_training_true)
-    pred = clf.predict(testingData)
+    pred = clf.predict(trainingData)
     print(pred)
 
     predFloat = []
@@ -190,16 +199,10 @@ def adaBoost(trainingData, testingData):
         y_testing_true.append(float(row[8]))
     print(y_testing_true)
 
-    pointsMislabeled = 0
-    i = 0
-    while i < len(pred):  # Compares the predicted labels to the real labels and finds the number of mislabeled points
-        if predFloat[i] != y_testing_true[i]:
-            pointsMislabeled += 1
-        i += 1
+    scores = cross_val_score(clf, trainingData, y_training_true, cv=5)  # Compute 5 fold, cross validation with training
+    print("F1 scores with 5-fold validation: ", scores)
 
-    print("There were ", len(pred), "data points")
-    print("Number of points mislabeled: ", pointsMislabeled)
-    print("Percentage of mislabeled points: ", (pointsMislabeled/len(pred))*100)
+
 def naiveBayes(trainingData, testingData):
     intList = []  # Turn training data into all numerical floating point values
     for row in trainingData:
@@ -229,17 +232,8 @@ def naiveBayes(trainingData, testingData):
     for row in testingData:  # Creates a list of all the true labels for the testing data
         y_testing_true.append(float(row[8]))
 
-    pointsMislabeled = 0
-    i = 0
-    while i < len(y_testing_true):  # Counts how many data points that the prediction got wrong
-        if y_testing_true[i] != y_pred[i]:
-            pointsMislabeled += 1
-        i += 1
-
-    print("prediction:", y_pred)
-    print("true values are: ", y_testing_true)
-    print("Number of mislabeled points out of a total %d points : %d" % (len(testingData), pointsMislabeled))
-    print("Mislabeled point percentage: %", (pointsMislabeled/len(testingData)*100))
+    scores = cross_val_score(gnb, intList, y_training_true, cv=5)  # Compute 5-fold, cross validation with training
+    print("F1 scores with 5-fold validation: ", scores)
 
 
 if __name__ == "__main__":
