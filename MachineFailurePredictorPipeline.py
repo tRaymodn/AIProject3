@@ -12,6 +12,7 @@ from sklearn.model_selection import cross_val_score, cross_validate
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.model_selection import GridSearchCV
+from tabulate import tabulate
 
 def main():
     with open('ai4i2020.csv') as file:
@@ -43,25 +44,72 @@ def main():
         print(split[0])  # 70% training data
         print(len(split[1]))
         print(split[1])  # 30% testing data
-        table = []
-        table.append(['ML Trained Model', 'Best Parameter Set', ])
-
-        """trainrf = trainRandomForest(split[0])
-        testrf = tstRandomForest(split[1], trainrf)"""
-        """trainada = trainAdaBoost(split[0])
-        testada = tstAdaBoost(split[1], trainada)"""
-
-        """
+        trainTable = []
         trainNN = trainNeuralNetwork(split[0])
-        testNN = tstNeuralNetwork(split[1], trainNN)
-       """
-        """trainsvm = trainSupportVectorMachine(split[0])
-        testsvm = tstSupportVectorMachine(split[1], trainsvm)
-        """
+        trainNNinst = ['Neural Network']
+        trainNNinst.append(trainNN[0].get_params())
+        trainNNinst.append(trainNN[1])
+        trainTable.append(trainNNinst)
+
+        trainsvm = trainSupportVectorMachine(split[0])
+        trainsvminst = ['Support Vector Machine']
+        trainsvminst.append(trainsvm[0].get_params())
+        trainsvminst.append(trainsvm[1])
+        trainTable.append(trainsvminst)
+
+        trainrf = trainRandomForest(split[0])
+        trainrfinst = ['Random Forest']
+        trainrfinst.append(trainrf[0].get_params())
+        trainrfinst.append(trainrf[1])
+        trainTable.append(trainrfinst)
+
+        trainada = trainAdaBoost(split[0])
+        trainadainst = ['Ada Boost']
+        trainadainst.append(trainada[0].get_params())
+        trainadainst.append(trainada[1])
+        trainTable.append(trainadainst)
+
         trainnb = trainNaiveBayes(split[0])
+        trainnbinst = ['Naive Bayes']
+        trainnbinst.append(trainnb[0].get_params())
+        trainnbinst.append(trainnb[1])
+        trainTable.append(trainnbinst)
+        print(tabulate(trainTable, headers=["ML Model", "Best Parameter Set", "Training Data F1 Score with 5-Fold Validation"]))
+
+
+        testTable = []
+        testNN = tstNeuralNetwork(split[1], trainNN)
+        testnninst = ['Neural Network']
+        testnninst.append(testNN[0].get_params())
+        testnninst.append(testNN[1])
+        testTable.append(testnninst)
+
+        testsvm = tstSupportVectorMachine(split[1], trainsvm)
+        testsvminst = ['Support Vector Machine']
+        testsvminst.append(testsvm[0].get_params())
+        testsvminst.append(testsvm[1])
+        testTable.append(testsvminst)
+
+        testrf = tstRandomForest(split[1], trainrf)
+        testrfinst = ['Random Forest']
+        testrfinst.append(testrf[0].get_params())
+        testrfinst.append(testrf[1])
+        testTable.append(testrfinst)
+
+        testada = tstAdaBoost(split[1], trainada)
+        testadainst = ['Ada Boost']
+        testadainst.append(testada[0].get_params())
+        testadainst.append(testada[1])
+        testTable.append(testadainst)
+
         testnb = tstNaiveBayes(split[1], trainnb)
-        print(testnb)
-        
+        testnbinst = ['Naive Bayes']
+        testnbinst.append(testnb[0].get_params())
+        testnbinst.append(testnb[1])
+        testTable.append(testnbinst)
+
+        print(tabulate(testTable, headers=["ML Model", "Best Parameter Set", "Testing Data F1 Score"]))
+
 
 def trainNeuralNetwork(trainingData):
     trainingFloatList = []  # Turn training data into all numerical floating point values
