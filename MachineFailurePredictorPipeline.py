@@ -43,23 +43,29 @@ def main():
         print(split[0])  # 70% training data
         print(len(split[1]))
         print(split[1])  # 30% testing data
-        #neuralNetwork(split[0], split[1])
-        #naiveBayes(split[0], split[1])
-        #randomForest(split[0], split[1])
-        #supportVectorMachine(split[0], split[1])
-        #adaBoost(split[0], split[1])
-def neuralNetwork(training_data, testing_data):
-    for row in training_data:  # Convert letters into numerical data
-        row[1] = row[1][1:]
-        if row[2] == "L":
-            row[2] = 0.5
-        elif row[2] == "M":
-            row[2] = 0.3
-        else:
-            row[2] = 0.2
+        table = []
+        table.append(['ML Trained Model', 'Best Parameter Set', ])
 
+        """trainrf = trainRandomForest(split[0])
+        testrf = tstRandomForest(split[1], trainrf)"""
+        """trainada = trainAdaBoost(split[0])
+        testada = tstAdaBoost(split[1], trainada)"""
+
+        """
+        trainNN = trainNeuralNetwork(split[0])
+        testNN = tstNeuralNetwork(split[1], trainNN)
+       """
+        """trainsvm = trainSupportVectorMachine(split[0])
+        testsvm = tstSupportVectorMachine(split[1], trainsvm)
+        """
+        trainnb = trainNaiveBayes(split[0])
+        testnb = tstNaiveBayes(split[1], trainnb)
+        print(testnb)
+        
+
+def trainNeuralNetwork(trainingData):
     trainingFloatList = []  # Turn training data into all numerical floating point values
-    for row in training_data:
+    for row in trainingData:
         newRow = []
         for att in row:
             if att == "L":
@@ -72,16 +78,12 @@ def neuralNetwork(training_data, testing_data):
                 newRow.append(float(att))
         trainingFloatList.append(newRow)
     y_true = []
-    for row in training_data:  # Create an array of ints correctly representing the machine failure for each data point
+    for row in trainingData:  # Create an array of ints correctly representing the machine failure for each data point
         y_true.append(row[8])
 
     clf = MLPClassifier(solver='lbfgs', alpha=1e-5, hidden_layer_sizes=(5, 2), random_state=1, max_iter=2000)
     clf.fit(trainingFloatList, y_true)
 
-    y_pred = clf.predict(trainingFloatList)
-    print("Prediction: ", y_pred)
-
-    degree = np.array([1, 2, 3])
     randomState = np.array([9, 8, 10])
     tol = np.array([0.0001, 0.00011, 0.000010])
     alpha = np.array([101.46, 101.45, 101.49, 101.6])
@@ -94,32 +96,44 @@ def neuralNetwork(training_data, testing_data):
     print("Best estimator for tolerance: ", grid.best_estimator_.tol)
     print("Best estimator for alpha: ", grid.best_estimator_.alpha)
 
+    bestEstimate = MLPClassifier(solver='lbfgs', random_state=grid.best_estimator_.random_state,
+                                 tol=grid.best_estimator_.tol,
+                                 alpha=grid.best_estimator_.alpha,
+                                 hidden_layer_sizes=(5, 2),
+                                 max_iter=2000)
+    scores = cross_val_score(bestEstimate, trainingFloatList, y_true, cv=5)
+    print("5-fold cross validation scores on training data: ", scores)
+    f1 = sum(scores) / len(scores)
+    print("Average cross validation score on training data: ", f1)
+
+    output = [bestEstimate,
+              f1]
+    return output
+def tstNeuralNetwork(testingData, modelParams):
     testingIntList = []  # Turn training data into all numerical floating point values
-    for row in testing_data:
+    for row in testingData:
         newRow = []
         for att in row:
             newRow.append(float(att))
         testingIntList.append(newRow)
 
     y_testing_true = []
-    for row in testing_data:  # Create list of true labels values for testing data
+    for row in testingData:  # Create list of true labels values for testing data
         y_testing_true.append(row[8])
 
-    clfNew = MLPClassifier(random_state=grid.best_estimator_.random_state,
-                     tol=grid.best_estimator_.tol,
-                     alpha=grid.best_estimator_.alpha)
-    scores = cross_val_score(clfNew, testingIntList, y_testing_true, cv=5)
-    print("5-fold cross validation scores on testing data: ", scores)
-    f1 = sum(scores) / len(scores)
-    print("Average cross validation score on testing data: ", f1)
+    clfNew = modelParams[0]
+    clfNew.fit(testingData, y_testing_true)
+    pred = clfNew.predict(testingIntList)
+    f1 = f1_score(y_testing_true, pred, pos_label="1")
+    print(pred)
 
-    output = [['random_state', grid.best_estimator_.random_state],
-              ['tol', grid.best_estimator_.tol],
-              ['alpha', grid.best_estimator_.alpha],
-              [f1]]
+    output = modelParams
+    output.pop()
+    output.append(f1)
     return output
 
-def supportVectorMachine(trainingData, testingData):
+
+def trainSupportVectorMachine(trainingData):
     training_true_y = []
     for row in trainingData:  # Creating a table of true labels for the training data
         training_true_y.append(row[8])
@@ -138,14 +152,8 @@ def supportVectorMachine(trainingData, testingData):
                 newRow.append(float(att))
         trainingFloatList.append(newRow)
 
-    y_testing_true = []
-    for row in testingData:  # Creates a list of all the true labels for the testing data
-        y_testing_true.append(float(row[8]))
-    print(y_testing_true)
-
     clf = svm.SVC()
     clf.fit(trainingFloatList, training_true_y)
-    pred = clf.predict(testingData)  # Make a prediction using the Support Vector Machine
 
     degree = np.array([1, 2, 3])
     tol = np.array([0.0001, 0.001, 0.01, 0.0005, 0.00005, 0.00001])
@@ -155,12 +163,24 @@ def supportVectorMachine(trainingData, testingData):
     print(grid)
     # summarize the results of the grid search
     print("Best grid score: ", grid.best_score_)
-    #print("Best estimator for coef0: ", grid.best_estimator_.coef0)
-    #print("Best estimator for C: ", grid.best_estimator_.C)
     print("Best estimator for degree: ", grid.best_estimator_.degree)
-    print("Best estimator for tolerance: ", grid.best_estimator_.tol)
+    print("Best estimator for tol: ", grid.best_estimator_.tol)
     print("Best estimator for gamma: ", grid.best_estimator_.gamma)
 
+    bestEstimate = svm.SVC(degree=grid.best_estimator_.degree,
+                       tol=grid.best_estimator_.tol,
+                       gamma=grid.best_estimator_.gamma,
+                       )
+    scores = cross_val_score(bestEstimate, trainingFloatList, training_true_y, cv=5)
+    f1 = sum(scores) / len(scores)
+    print("Average cross validation score on training data: ", f1)
+
+    output = [bestEstimate,
+              f1]
+    return output
+
+
+def tstSupportVectorMachine(testingData, modelParams):
     testingIntList = []  # Turn training data into all numerical floating point values
     for row in testingData:
         newRow = []
@@ -172,22 +192,18 @@ def supportVectorMachine(trainingData, testingData):
     for row in testingData:  # Create list of true labels values for testing data
         y_testing_true.append(row[8])
 
-    clfNew = svm.SVC(degree=grid.best_estimator_.degree,
-                     tol=grid.best_estimator_.tol,
-                     gamma=grid.best_estimator_.gamma)
-    scores = cross_val_score(clfNew, testingIntList, y_testing_true, cv=5)
-    print("5-fold cross validation scores on testing data: ", scores)
-    f1 = sum(scores) / len(scores)
-    print("Average cross validation score on testing data: ", f1)
+    clfNew = modelParams[0]
+    clfNew.fit(testingIntList, y_testing_true)
+    pred = clfNew.predict(testingIntList)
+    f1 = f1_score(y_testing_true, pred, pos_label="1")
+    print(pred)
 
-    output = [['degree', grid.best_estimator_.degree],
-              ['tolerance', grid.best_estimator_.tol],
-              ['gamma', grid.best_estimator_.gamma],
-              [f1]]
+    output = modelParams
+    output.pop()
+    output.append(f1)
     return output
 
-
-def randomForest(trainingInput, testingInput):
+def trainRandomForest(trainingInput):
 
     clf = RandomForestClassifier()
 
@@ -206,8 +222,35 @@ def randomForest(trainingInput, testingInput):
         y.append(row[8])
 
     clf.fit(trainingInput, y)
+    estimators = np.array([100, 110, 90])
+    maxDepth = np.array([2, 3, 5, 7])
+    maxFeatures = np.array([2, 3, 5, 7])
+    grid = GridSearchCV(estimator=clf,
+                        param_grid={'n_estimators': estimators, 'max_depth': maxDepth, 'max_features': maxFeatures})
 
-    for row in testingInput:
+    grid.fit(trainingInput, y)
+    print(grid)
+    # summarize the results of the grid search
+    print("Best grid score: ", grid.best_score_)
+    print("Best estimator for n_estimators: ", grid.best_estimator_.n_estimators)
+    print("Best estimator for max_depth: ", grid.best_estimator_.max_depth)
+    print("Best estimator for max_features: ", grid.best_estimator_.max_features)
+
+    bestEstimate = RandomForestClassifier(n_estimators=grid.best_estimator_.n_estimators,
+                                          max_depth=grid.best_estimator_.max_depth,
+                                          max_features=grid.best_estimator_.max_features,
+                           )
+    scores = cross_val_score(bestEstimate, trainingInput, y, cv=5)
+    f1 = sum(scores) / len(scores)
+    print("Average cross validation score on training data: ", f1)
+
+    output = [bestEstimate,
+              f1]
+    return output
+
+
+def tstRandomForest(testingData, modelParams):
+    for row in testingData:
         row[1] = 0
 
         if row[2] == 'L':
@@ -217,47 +260,23 @@ def randomForest(trainingInput, testingInput):
         elif row[2] == 'H':
             row[2] = 0.2
 
-
-    y_pred = clf.predict(trainingInput)
-
-    y_true = []
-    for row in trainingInput:
-        y_true.append(row[8])
-
-    print(y_true)
-    print(y_pred)
-
-    estimators = np.array([100, 110, 90])
-    maxDepth = np.array([2, 3, 5, 7])
-    maxFeatures = np.array([2, 3, 5, 7])
-    grid = GridSearchCV(estimator=clf, param_grid={'n_estimators': estimators, 'max_depth': maxDepth, 'max_features': maxFeatures})
-    grid.fit(trainingInput, y_true)
-    print(grid)
-    # summarize the results of the grid search
-    print("Best grid score: ", grid.best_score_)
-    print("Best estimator for n_estimators: ", grid.best_estimator_.n_estimators)
-    print("Best estimator for max_depth: ", grid.best_estimator_.max_depth)
-    print("Best estimator for max_features: ", grid.best_estimator_.max_features)
-
     y_testing_true = []
-    for row in testingInput:  # Create list of true labels values for testing data
+    for row in testingData:  # Create list of true labels values for testing data
         y_testing_true.append(row[8])
 
-    clfNew = RandomForestClassifier(n_estimators=grid.best_estimator_.n_estimators,
-                                    max_depth=grid.best_estimator_.max_depth,
-                                    max_features=grid.best_estimator_.max_features)
-    scores = cross_val_score(clfNew, testingInput, y_testing_true, cv=5)
-    print("5-fold cross validation scores on testing data: ", scores)
-    f1 = sum(scores) / len(scores)
-    print("Average cross validation score on testing data: ", f1)
+    clfNew = modelParams[0]
+    clfNew.fit(testingData, y_testing_true)
+    pred = clfNew.predict(testingData)
+    f1 = f1_score(y_testing_true, pred, pos_label="1")
+    print(pred)
 
-    output = [['n_estimators', grid.best_estimator_.n_estimators],
-              ['max_depth', grid.best_estimator_.max_depth],
-              ['max_features', grid.best_estimator_.max_features],
-              [f1]]
+    output = modelParams
+    output.pop()
+    output.append(f1)
     return output
 
-def adaBoost(trainingData, testingData):
+
+def trainAdaBoost(trainingData):
     y_training_true = []
     for row in trainingData:  # Create list of true labels values for training data
         y_training_true.append(row[8])
@@ -278,9 +297,23 @@ def adaBoost(trainingData, testingData):
     # summarize the results of the grid search
     print("Best grid score: ", grid.best_score_)
     print("Best estimator for n_estimators: ", grid.best_estimator_.n_estimators)
-    print("Best estimator for random state: ", grid.best_estimator_.random_state)
-    print("Best estimator for learning rate: ", grid.best_estimator_.learning_rate)
+    print("Best estimator for random_state: ", grid.best_estimator_.random_state)
+    print("Best estimator for learning_rate: ", grid.best_estimator_.learning_rate)
 
+    bestEstimate = AdaBoostClassifier(n_estimators=grid.best_estimator_.n_estimators,
+                           random_state=grid.best_estimator_.random_state,
+                           learning_rate=grid.best_estimator_.learning_rate,
+                           )
+    scores = cross_val_score(bestEstimate, trainingData, y_training_true, cv=5)
+    f1 = sum(scores) / len(scores)
+    print("Average cross validation score on training data: ", f1)
+
+    output = [bestEstimate,
+              f1]
+    return output
+
+
+def tstAdaBoost(testingData, modelParams):
     testingIntList = []  # Turn training data into all numerical floating point values
     for row in testingData:
         newRow = []
@@ -292,22 +325,17 @@ def adaBoost(trainingData, testingData):
     for row in testingData:  # Create list of true labels values for testing data
         y_testing_true.append(row[8])
 
-    clfNew = AdaBoostClassifier(learning_rate=grid.best_estimator_.learning_rate,
-                                random_state=grid.best_estimator_.random_state,
-                                n_estimators=grid.best_estimator_.n_estimators)
-    scores = cross_val_score(clfNew, testingIntList, y_testing_true, cv=5)
-    print("5-fold cross validation scores on testing data: ", scores)
-    f1 = sum(scores) / len(scores)
-    print("Average cross validation score on testing data: ", f1)
+    clfNew = modelParams[0]
+    clfNew.fit(testingIntList, y_testing_true)
+    pred = clfNew.predict(testingIntList)
+    f1 = f1_score(y_testing_true, pred, pos_label="1")
+    print(pred)
 
-    output = [['learning_rate', grid.best_estimator_.learning_rate],
-              ['n_estimators', grid.best_estimator_.n_estimators],
-              ['random_state', grid.best_estimator_.random_state],
-              [f1]]
+    output = modelParams
+    output.pop()
+    output.append(f1)
     return output
-
-
-def naiveBayes(trainingData, testingData):
+def trainNaiveBayes(trainingData):
     intList = []  # Turn training data into all numerical floating point values
     for row in trainingData:
         newRow = []
@@ -330,8 +358,19 @@ def naiveBayes(trainingData, testingData):
     print(grid)
     # summarize the results of the grid search
     print("Best grid score: ", grid.best_score_)
-    print("Best estimator for variable smoothing: ", grid.best_estimator_.var_smoothing)
+    print("Best estimator for var_smoothing: ", grid.best_estimator_.var_smoothing)
 
+    bestEstimate = GaussianNB(var_smoothing=grid.best_estimator_.var_smoothing)
+    scores = cross_val_score(bestEstimate, intList, y_training_true, cv=5)
+    f1 = sum(scores) / len(scores)
+    print("Average cross validation score on training data: ", f1)
+
+    output = [bestEstimate,
+              f1]
+    return output
+
+
+def tstNaiveBayes(testingData, modelParams):
     testingIntList = []  # Turn training data into all numerical floating point values
     for row in testingData:
         newRow = []
@@ -343,16 +382,16 @@ def naiveBayes(trainingData, testingData):
     for row in testingData:  # Create list of true labels values for testing data
         y_testing_true.append(row[8])
 
-    gnbNew = GaussianNB(var_smoothing=grid.best_estimator_.var_smoothing)
-    scores = cross_val_score(gnbNew, testingIntList, y_testing_true, cv=5)
-    print("5-fold cross validation scores on testing data: ", scores)
-    f1 = sum(scores) / len(scores)
-    print("Average cross validation score on testing data: ", f1)
+    gnbNew = modelParams[0]
+    gnbNew.fit(testingIntList, y_testing_true)
+    pred = gnbNew.predict(testingIntList)
+    f1 = f1_score(y_testing_true, pred, pos_label="1")
+    print(pred)
 
-
-    output = [['var_smoothing', grid.best_estimator_.var_smoothing], [f1]]
+    output = modelParams
+    output.pop()
+    output.append(f1)
     return output
-
 
 if __name__ == "__main__":
     main()
